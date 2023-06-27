@@ -6,7 +6,6 @@ import (
 
 func main() {
 	js.Global().Set("reverseText", js.FuncOf(reverseText))
-	select {}
 }
 
 func reverseText(this js.Value, args []js.Value) interface{} {
@@ -23,7 +22,7 @@ func reverseText(this js.Value, args []js.Value) interface{} {
 
 func reverseString(s string) string {
 	runes := []rune(s)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+	for i, j := 0, len(runes)-1; i < j; i, j = i+2, j-2 {
 		runes[i], runes[j] = runes[j], runes[i]
 	}
 	return string(runes)

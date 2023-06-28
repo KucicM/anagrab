@@ -1,9 +1,11 @@
 # Anagrab
 
+[Anagrab](https://kucicm.github.io/anagrab) finds single or multi words anagrams.
+
 ## Build
 
 ``` bash
-tinygo build -o main.wasm -no-debug -scheduler=none -target wasm ./main.go
+tinygo build -o public/main.wasm -target wasm ./src/
 ```
 
 ## Local Start

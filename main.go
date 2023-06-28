@@ -1,29 +1,26 @@
 package main
 
 import (
+	"fmt"
 	"syscall/js"
 )
 
+const ENTER_KEY_CODE = 13
+
 func main() {
-	js.Global().Set("reverseText", js.FuncOf(reverseText))
+	js.Global().Set("handleKeyPress", js.FuncOf(handleKeyPress))
+    
+    c := make(chan struct{})
+    c <- struct{}{}
 }
 
-func reverseText(this js.Value, args []js.Value) interface{} {
-	doc := js.Global().Get("document")
-	textbox := doc.Call("getElementById", "textbox")
-	label := doc.Call("getElementById", "label")
-
-	text := textbox.Get("value").String()
-	reversed := reverseString(text)
-
-	label.Set("textContent", reversed)
-	return nil
+func handleKeyPress(this js.Value, args []js.Value) interface{} {
+    event := args[0]
+    keyCode := event.Get("keyCode").Int()
+    if keyCode == ENTER_KEY_CODE {
+        fmt.Println("Enter")
+    }
+    fmt.Printf("%d\n", keyCode)
+    return nil
 }
 
-func reverseString(s string) string {
-	runes := []rune(s)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
-	}
-	return string(runes)
-}

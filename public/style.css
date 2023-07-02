@@ -39,6 +39,13 @@ body {
   color: #70757a;
 }
 
+#not-found-results {
+  margin-top: 20px;
+  font-size: 20px;
+  color: #d8f1ff;
+  visibility: hidden;
+}
+
 
 ul {
   width: 800px;

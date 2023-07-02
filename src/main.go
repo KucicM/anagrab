@@ -38,20 +38,30 @@ func handleKeyPress(this js.Value, args []js.Value) interface{} {
 func displayCloud(wordList chan string) {
     doc := js.Global().Get("document")
     cloudContainer := doc.Call("getElementById", "result")
+    lable := doc.Call("getElementById", "not-found-results")
 
     for cloudContainer.Get("firstChild").Truthy() {
 		cloudContainer.Call("removeChild", cloudContainer.Get("firstChild"))
 	}
 
+    found := false
     for word := range wordList {
+        found = true
         link := doc.Call("createElement", "a")
         link.Set("textContent", word)
 
         fontSize := 2.0 + float32(rand() % 5) * 0.5
         opacity := fontSize / 4.5 * 100
 		link.Set("style", fmt.Sprintf("font-size: %frem; opacity: %f%%", fontSize, opacity))
+        link.Set("href", fmt.Sprintf("https://en.wiktionary.org/wiki/%s", word))
 
         cloudContainer.Call("appendChild", link)
+    }
+
+    if found {
+        lable.Get("style").Set("visibility", "hidden")
+    } else {
+        lable.Get("style").Set("visibility", "visible")
     }
 
 }
@@ -71,8 +81,13 @@ func findAnagrams(word string) chan string {
                 continue
             }
 
-            w := strings.Split(wordList[i], "")
+            w := strings.Split(strings.ToLower(wordList[i]), "")
             sort.Strings(w)
+
+
+            if w[0] > searchWord[0] {
+                return
+            }
 
             found := true
             for i := 0; i < len(word); i++ {

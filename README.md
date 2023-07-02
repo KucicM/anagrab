@@ -19,7 +19,7 @@ docker build -t anagrab .
 Step 2. Start the container and add volume path.
 
 ``` bash
-docker run -d -p 8080:80 --name anagrab -v "$(pwd)":/usr/share/nginx/html myapp-image
+docker run -d -p 8080:80 --name anagrab -v "$(pwd)":/usr/share/nginx/html anagrab
 ```
 
 Step 3. Any changes to files will be reflected on the [hosted pages](http://localhost:8080).

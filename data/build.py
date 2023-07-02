@@ -18,7 +18,8 @@ def build_word_list(input_path: str) -> str:
     print("building word list")
     words = filter(is_ascii_word, words)
     words = map(lambda x: x.lower(), words)
-    words = sorted(words, key=lambda w: sorted(w))
+    words = map(lambda x: x.strip(), words)
+    words = sorted(set(words), key=lambda w: sorted(w))
 
     return "\n".join(words)
 
@@ -68,10 +69,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     words = build_word_list(args.input_file_path)
 
-    encode_tree, decode_tree = build_compression_tree(words)
-
     out_path = pathlib.Path(args.output_file_path)
-    with open(out_path / "compression_tree.bin", "w") as f:
+    with open(out_path / "word_list.txt", "w") as f:
+        f.write(words)
+
+    encode_tree, decode_tree = build_compression_tree(words)
+    with open(out_path / "compression_tree.txt", "w") as f:
         parts = "|".join(["|".join([to_bin(k), v]) for k, v in decode_tree.items()])
         f.write(parts)
 

@@ -4,14 +4,20 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"syscall/js"
 )
 
 const ENTER_KEY_CODE = 13
 
+var wordList []string
+var mu = &sync.RWMutex{}
+
 
 func main() {
    js.Global().Set("handleKeyPress", js.FuncOf(handleKeyPress))
+
+   go prefetchWordList()
 
     <- make(chan struct{})
 }
@@ -21,23 +27,21 @@ func handleKeyPress(this js.Value, args []js.Value) interface{} {
     keyCode := event.Get("keyCode").Int()
     if keyCode == ENTER_KEY_CODE {
 
-        wordList := getWordList(this, args)
+        searchWord := getSerachWord(this, args)
+        anagrams := findAnagrams(searchWord)
 
-        doc := js.Global().Get("document")
-        input := doc.Call("getElementById", "search-input")
-        searchWord := input.Get("value").String()
-        
-        anagrams := findAnagrams(searchWord, wordList)
         for _, anagram := range anagrams {
             fmt.Println(anagram)
         }
     }
-    fmt.Printf("%d\n", keyCode)
 
-    return 0
+    return nil
 }
 
-func findAnagrams(word string, wordList []string) []string {
+func findAnagrams(word string) []string {
+    mu.RLock()
+    defer mu.RUnlock()
+
     searchWord := strings.Split(word, "")
     sort.Strings(searchWord)
 
@@ -69,14 +73,13 @@ func findAnagrams(word string, wordList []string) []string {
     return out
 }
 
-var wordList []string
 
-func getWordList(this js.Value, args []js.Value) []string {
-    if wordList == nil {
-        words := <- fetchWordList(this, args)
-        wordList = strings.Split(words, "\n")
-    }
-    return wordList
+func prefetchWordList() {
+    mu.Lock()
+    defer mu.Unlock()
+
+    words := <- fetchWordList(js.ValueOf(nil), nil)
+    wordList = strings.Split(words, "\n")
 }
 
 func fetchWordList(this js.Value, args []js.Value) chan string {
@@ -97,4 +100,10 @@ func fetchWordList(this js.Value, args []js.Value) chan string {
 	}))
 
 	return ch
+}
+
+func getSerachWord(this js.Value, args []js.Value) string {
+    doc := js.Global().Get("document")
+    input := doc.Call("getElementById", "search-input")
+    return input.Get("value").String()
 }

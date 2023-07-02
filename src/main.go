@@ -53,13 +53,14 @@ func displayCloud(wordList chan string) {
 
         cloudContainer.Call("appendChild", link)
     }
+
 }
 
 func findAnagrams(word string) chan string {
     mu.Lock()
     defer mu.Unlock()
 
-    searchWord := strings.Split(word, "")
+    searchWord := strings.Split(strings.ToLower(word), "")
     sort.Strings(searchWord)
 
     out := make(chan string)

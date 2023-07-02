@@ -5,7 +5,7 @@
 ## Build
 
 ``` bash
-tinygo build -o public/main.wasm -target wasm ./src/
+GOOS=js GOARCH=wasm go build -o public/main.wasm ./src
 ```
 
 ## Local Start

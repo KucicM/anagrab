@@ -4,20 +4,20 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 	"syscall/js"
+	"time"
 )
 
 const ENTER_KEY_CODE = 13
 
 var wordList []string
-var mu = &sync.Mutex{}
+var sortList [][]byte
 
 
 func main() {
    js.Global().Set("handleKeyPress", js.FuncOf(handleKeyPress))
 
-   go prefetchWordList()
+   prefetchWordList()
 
     <- make(chan struct{})
 }
@@ -26,7 +26,6 @@ func handleKeyPress(this js.Value, args []js.Value) interface{} {
     event := args[0]
     keyCode := event.Get("keyCode").Int()
     if keyCode == ENTER_KEY_CODE {
-
         searchWord := getSerachWord(this, args)
         anagrams := findAnagrams(searchWord)
         displayCloud(anagrams)
@@ -54,6 +53,8 @@ func displayCloud(wordList chan string) {
         opacity := fontSize / 4.5 * 100
 		link.Set("style", fmt.Sprintf("font-size: %frem; opacity: %f%%", fontSize, opacity))
         link.Set("href", fmt.Sprintf("https://en.wiktionary.org/wiki/%s", word))
+        link.Set("target", "_blank")
+        link.Set("rel", "noopener noreferrer")
 
         cloudContainer.Call("appendChild", link)
     }
@@ -67,51 +68,66 @@ func displayCloud(wordList chan string) {
 }
 
 func findAnagrams(word string) chan string {
-    mu.Lock()
-    defer mu.Unlock()
-
-    searchWord := strings.Split(strings.ToLower(word), "")
-    sort.Strings(searchWord)
+    searchWord := []byte(strings.ToLower(word))
+    sort.Slice(searchWord, func(i, j int) bool {return searchWord[i] < searchWord[j]})
 
     out := make(chan string)
     go func() {
         defer close(out)
+        searched := 0
+        totalTime := time.Second * 0
+        sortTime := time.Second * 0
+        defer func() {
+            fmt.Printf("search checkd %d words, total %+v sort %+v\n", searched, totalTime, sortTime)
+        }()
+
+
         for i := 0; i < len(wordList); i++ {
             if len(word) != len(wordList[i]) {
                 continue
             }
 
-            w := strings.Split(strings.ToLower(wordList[i]), "")
-            sort.Strings(w)
+            searched++
+            start := time.Now()
 
-
-            if w[0] > searchWord[0] {
+            if sortList[i][0] > searchWord[0] {
                 return
             }
 
             found := true
-            for i := 0; i < len(word); i++ {
-                if w[i] != searchWord[i] {
+            for j := 0; j < len(word); j++ {
+                if sortList[i][j] != searchWord[j] {
                     found = false
                     break
                 }
             }
 
+            totalTime += time.Since(start)
+
             if found {
                 out <- wordList[i]
             }
         }
+
     }()
 
     return out
 }
 
 func prefetchWordList() {
-    mu.Lock()
-    defer mu.Unlock()
-
     words := <- fetchWordList(js.ValueOf(nil), nil)
     wordList = strings.Split(words, "\n")
+
+    sortList = make([][]byte, len(wordList))
+    for i := 0; i < len(wordList); i++ {
+        lower := strings.ToLower(wordList[i])
+        sortList[i] = []byte(lower)
+        sort.Slice(sortList[i], func(j int, k int) bool { return sortList[i][j] < sortList[i][k] })
+    }
+
+    doc := js.Global().Get("document")
+    search := doc.Call("getElementById", "search-input")
+    search.Set("placeholder", "")
 }
 
 func fetchWordList(this js.Value, args []js.Value) chan string {

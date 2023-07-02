@@ -38,3 +38,28 @@ body {
   font-size: 14px;
   color: #70757a;
 }
+
+
+ul {
+  width: 800px;
+  flex-wrap: wrap;
+  margin: auto;
+  margin-top: 35px;
+}
+
+ul.cloud {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  line-height: 2.5rem;
+}
+
+ul.cloud a {
+  color: #d8f1ff;
+  display: block;
+  font-size: 1.5rem;
+  padding: 0.125rem 0.25rem;
+  text-decoration: none;
+  position: relative;
+}
+

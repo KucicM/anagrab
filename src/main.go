@@ -11,7 +11,7 @@ import (
 const ENTER_KEY_CODE = 13
 
 var wordList []string
-var mu = &sync.RWMutex{}
+var mu = &sync.Mutex{}
 
 
 func main() {
@@ -29,18 +29,35 @@ func handleKeyPress(this js.Value, args []js.Value) interface{} {
 
         searchWord := getSerachWord(this, args)
         anagrams := findAnagrams(searchWord)
-
-        for _, anagram := range anagrams {
-            fmt.Println(anagram)
-        }
+        displayCloud(anagrams)
     }
 
     return nil
 }
 
+func displayCloud(wordList []string) {
+    doc := js.Global().Get("document")
+    cloudContainer := doc.Call("getElementById", "result")
+
+    for cloudContainer.Get("firstChild").Truthy() {
+		cloudContainer.Call("removeChild", cloudContainer.Get("firstChild"))
+	}
+
+    for _, word := range wordList {
+        link := doc.Call("createElement", "a")
+        link.Set("textContent", word)
+
+        fontSize := 2.0 + float32(rand() % 5) * 0.5
+        opacity := fontSize / 4.5 * 100
+		link.Set("style", fmt.Sprintf("font-size: %frem; opacity: %f%%", fontSize, opacity))
+
+        cloudContainer.Call("appendChild", link)
+    }
+}
+
 func findAnagrams(word string) []string {
-    mu.RLock()
-    defer mu.RUnlock()
+    mu.Lock()
+    defer mu.Unlock()
 
     searchWord := strings.Split(word, "")
     sort.Strings(searchWord)
@@ -54,7 +71,6 @@ func findAnagrams(word string) []string {
         w := strings.Split(wordList[i], "")
         sort.Strings(w)
 
-
         found := true
         for i := 0; i < len(word); i++ {
             if w[i] != searchWord[i] {
@@ -63,16 +79,13 @@ func findAnagrams(word string) []string {
             }
         }
 
-        if !found {
-            continue
+        if found {
+            out = append(out, wordList[i])
         }
-
-        out = append(out, wordList[i])
     }
 
     return out
 }
-
 
 func prefetchWordList() {
     mu.Lock()
@@ -106,4 +119,8 @@ func getSerachWord(this js.Value, args []js.Value) string {
     doc := js.Global().Get("document")
     input := doc.Call("getElementById", "search-input")
     return input.Get("value").String()
+}
+
+func rand() int {
+	return int(js.Global().Get("Math").Call("random").Float() * 100)
 }

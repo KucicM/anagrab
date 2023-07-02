@@ -17,6 +17,7 @@ def build_word_list(input_path: str) -> str:
 
     print("building word list")
     words = filter(is_ascii_word, words)
+    words = map(lambda x: x.lower(), words)
     words = sorted(words, key=lambda w: sorted(w))
 
     return "\n".join(words)

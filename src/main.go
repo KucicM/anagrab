@@ -27,14 +27,17 @@ func handleKeyPress(this js.Value, args []js.Value) interface{} {
     keyCode := event.Get("keyCode").Int()
     if keyCode == ENTER_KEY_CODE {
         searchWord := getSerachWord(this, args)
+        if len(searchWord) == 0 {
+            return nil
+        }
         anagrams := findAnagrams(searchWord)
-        displayCloud(anagrams)
+        displayCloud(anagrams, searchWord)
     }
 
     return nil
 }
 
-func displayCloud(wordList chan string) {
+func displayCloud(wordList chan string, searchWord string) {
     doc := js.Global().Get("document")
     cloudContainer := doc.Call("getElementById", "result")
     lable := doc.Call("getElementById", "not-found-results")
@@ -49,8 +52,10 @@ func displayCloud(wordList chan string) {
         link := doc.Call("createElement", "a")
         link.Set("textContent", word)
 
-        fontSize := 2.0 + float32(rand() % 5) * 0.5
-        opacity := fontSize / 4.5 * 100
+        editDistance := calculateEditDistance(word, searchWord)
+        diff := float32(len(searchWord) - editDistance) / float32(len(searchWord))
+        fontSize := 2.0 + diff * 2.5
+        opacity := (diff * 0.6 + 0.4) * 100
 		link.Set("style", fmt.Sprintf("font-size: %frem; opacity: %f%%", fontSize, opacity))
         link.Set("href", fmt.Sprintf("https://en.wiktionary.org/wiki/%s", word))
         link.Set("target", "_blank")
@@ -76,9 +81,8 @@ func findAnagrams(word string) chan string {
         defer close(out)
         searched := 0
         totalTime := time.Second * 0
-        sortTime := time.Second * 0
         defer func() {
-            fmt.Printf("search checkd %d words, total %+v sort %+v\n", searched, totalTime, sortTime)
+            fmt.Printf("search checked %d words in total %+v\n", searched, totalTime)
         }()
 
 
@@ -158,4 +162,35 @@ func getSerachWord(this js.Value, args []js.Value) string {
 
 func rand() int {
 	return int(js.Global().Get("Math").Call("random").Float() * 100)
+}
+
+func calculateEditDistance(w1, w2 string) int {
+    dp := make([]int, len(w2)+1)
+    for i := 0; i <= len(w2); i++ {
+        prev := dp[0]
+        dp[0] = i
+        for j := 1; j <= len(w2); j++ {
+            tmp := dp[j]
+            if i > 0 && j > 0 {
+                if w1[i-1] == w2[j-1] {
+                    dp[j] = prev
+                } else {
+                    dp[j] = 1 + min(dp[j], dp[j-1], prev)
+                }
+            } else {
+                dp[j] = j + i
+            }
+            prev = tmp
+        }
+    }
+    return dp[len(w2)]
+}
+
+func min(i, j, k int) int {
+    if i <= j && i <= k {
+		return i
+	} else if j <= i && j <= k {
+		return j
+	}
+	return k
 }

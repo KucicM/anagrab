@@ -35,7 +35,7 @@ func handleKeyPress(this js.Value, args []js.Value) interface{} {
     return nil
 }
 
-func displayCloud(wordList []string) {
+func displayCloud(wordList chan string) {
     doc := js.Global().Get("document")
     cloudContainer := doc.Call("getElementById", "result")
 
@@ -43,7 +43,7 @@ func displayCloud(wordList []string) {
 		cloudContainer.Call("removeChild", cloudContainer.Get("firstChild"))
 	}
 
-    for _, word := range wordList {
+    for word := range wordList {
         link := doc.Call("createElement", "a")
         link.Set("textContent", word)
 
@@ -55,34 +55,37 @@ func displayCloud(wordList []string) {
     }
 }
 
-func findAnagrams(word string) []string {
+func findAnagrams(word string) chan string {
     mu.Lock()
     defer mu.Unlock()
 
     searchWord := strings.Split(word, "")
     sort.Strings(searchWord)
 
-    out := make([]string, 0)
-    for i := 0; i < len(wordList); i++ {
-        if len(word) != len(wordList[i]) {
-            continue
-        }
+    out := make(chan string)
+    go func() {
+        defer close(out)
+        for i := 0; i < len(wordList); i++ {
+            if len(word) != len(wordList[i]) {
+                continue
+            }
 
-        w := strings.Split(wordList[i], "")
-        sort.Strings(w)
+            w := strings.Split(wordList[i], "")
+            sort.Strings(w)
 
-        found := true
-        for i := 0; i < len(word); i++ {
-            if w[i] != searchWord[i] {
-                found = false
-                break
+            found := true
+            for i := 0; i < len(word); i++ {
+                if w[i] != searchWord[i] {
+                    found = false
+                    break
+                }
+            }
+
+            if found {
+                out <- wordList[i]
             }
         }
-
-        if found {
-            out = append(out, wordList[i])
-        }
-    }
+    }()
 
     return out
 }
